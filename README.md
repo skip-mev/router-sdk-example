@@ -2,6 +2,8 @@
 
 This is an example of how to use the [Skip Router SDK](https://www.npmjs.com/package/@skip-router/core).
 
+Demo: [https://router-sdk-example.vercel.app/](https://router-sdk-example.vercel.app/)
+
 ## Getting Started
 
 Clone the repository and install the dependencies:
