@@ -342,6 +342,8 @@ export default function Home() {
                   chainID: e.target.value,
                 }))
               }
+              icon={chainsLoading ? <Spinner /> : undefined}
+              isDisabled={chainsLoading}
             >
               {chains?.map((chain) => (
                 <option value={chain.chainID} key={chain.chainID}>
@@ -360,7 +362,8 @@ export default function Home() {
                   assetDenom: e.target.value,
                 }))
               }
-              disabled={!destination?.chainID}
+              icon={assetsLoading ? <Spinner /> : undefined}
+              disabled={!destination?.chainID || assetsLoading}
             >
               {destination?.chainID &&
                 assets?.[destination?.chainID]?.map((asset) => (
