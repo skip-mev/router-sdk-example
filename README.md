@@ -34,7 +34,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Links
 
-- [Skip API Docs](https://api-docs.skip.money/) - learn about the Skip API.
-- [IBC.FUN](https://ibc.fun) - Interchain transfers and swaps on any Cosmos chain.
 - [Skip Router SDK](https://www.npmjs.com/package/@skip-router/core) - the Skip Router SDK.
-- [Skip Router SDK GitHub](https://github.com/skip-mev/skip-router-sdk) - the Skip Router SDK GitHub repository.
+- [Skip Router SDK GitHub](https://github.com/skip-mev/skip-router-sdk) - the Skip Router SDK GitHub
+- [Skip API Docs](https://api-docs.skip.money/) - learn about the Skip API.
+- [IBC.FUN](https://ibc.fun) - Interchain transfers and swaps on any Cosmos chain.repository.
