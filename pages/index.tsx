@@ -9,6 +9,8 @@ import {
   Select,
   Spinner,
   Stack,
+  StatDownArrow,
+  Text,
   useToast,
 } from "@chakra-ui/react";
 import { SkipRouter } from "@skip-router/core";
@@ -28,7 +30,6 @@ import {
   defaultStyles,
 } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
-import { fromBech32, toBech32 } from "@cosmjs/encoding";
 import { Layout } from "@/components/Layout";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -54,9 +55,6 @@ export default function Home() {
   >([]);
 
   const chainInfo = useChainInfo({
-    chainId: source?.chainID,
-  });
-  const { data: account } = useAccount({
     chainId: source?.chainID,
   });
 
@@ -131,13 +129,13 @@ export default function Home() {
 
   const amountIn = getAmountWei(amount, sourceAsset?.decimals);
 
+  // querying route
   const { data: route } = useQuery({
     queryKey: ["route", source, destination, amountIn],
     queryFn: async () => {
       if (
         !destination?.chainID ||
         !destination?.assetDenom ||
-        !destination?.destinationAddress ||
         !source?.chainID ||
         !source?.assetDenom
       )
@@ -148,7 +146,7 @@ export default function Home() {
         amountIn: amountIn,
         sourceAssetChainID: source?.chainID,
         sourceAssetDenom: source?.assetDenom,
-        rapidRelay: true,
+        smartRelay: true,
         allowMultiTx: true,
         allowUnsafe: true,
       });
@@ -156,24 +154,27 @@ export default function Home() {
     enabled: !!source && !!destination && !!amountIn,
   });
 
-  const userAddresses = useMemo(() => {
-    let res: Record<string, string> = {};
-    route?.chainIDs.forEach((chainId, i) => {
-      if (i === 0) {
-        res[chainId] = account?.bech32Address!;
-      }
-      if (i === route?.chainIDs.length - 1) {
-        res[chainId] = destination?.destinationAddress!;
-      }
-      res[chainId] = toBech32(
-        getChainInfo({ chainId: chainId })?.bech32Config.bech32PrefixAccAddr ||
-          "",
-        fromBech32(account?.bech32Address || "").data
-      );
-    });
+  const { data: account } = useAccount({
+    chainId: route?.chainIDs,
+    multiChain: true,
+  });
 
-    return res;
-  }, [route, account, destination]);
+  const userAddresses = useMemo(() => {
+    let userAddresses: Record<string, string> = {};
+    route?.chainIDs.forEach((chainID, i) => {
+      if (i === route.chainIDs.length - 1) {
+        if (destination?.destinationAddress) {
+          userAddresses[chainID] = destination?.destinationAddress;
+        } else {
+          return;
+        }
+      }
+      if (Boolean(account?.[chainID]?.bech32Address)) {
+        userAddresses[chainID] = account?.[chainID]!.bech32Address!;
+      }
+    });
+    return userAddresses;
+  }, [route?.chainIDs, destination?.destinationAddress, account]);
 
   const execRoute = useMutation({
     mutationKey: ["executeRoute", { route }],
@@ -294,39 +295,42 @@ export default function Home() {
                 ))}
             </Select>
           </Stack>
-          {chainInfo && account?.bech32Address && (
-            <>
-              <Heading size="md">Account</Heading>
-              <Code px={4} py={2}>
-                {account?.bech32Address}
-              </Code>
-
-              <InputGroup>
-                <Input
-                  type="number"
-                  placeholder="Amount"
-                  onChange={(e) => setAmount(e.target.value)}
-                  value={amount}
-                />
-                <InputRightAddon>{sourceAsset?.symbol}</InputRightAddon>
-              </InputGroup>
-            </>
-          )}
           {chainInfo &&
-            (!account?.bech32Address ? (
+            source?.chainID &&
+            account?.[source?.chainID]?.bech32Address && (
+              <>
+                <Heading size="md">Account</Heading>
+                <Code px={4} py={2}>
+                  {account?.[chainInfo.chainId]?.bech32Address}
+                </Code>
+
+                <InputGroup>
+                  <Input
+                    type="number"
+                    placeholder="Amount"
+                    onChange={(e) => setAmount(e.target.value)}
+                    value={amount}
+                  />
+                  <InputRightAddon>{sourceAsset?.symbol}</InputRightAddon>
+                </InputGroup>
+              </>
+            )}
+          {chainInfo &&
+            (source?.chainID && account?.[source?.chainID]?.bech32Address ? (
+              <Button colorScheme="orange" onClick={() => disconnect()}>
+                Disconnect
+              </Button>
+            ) : (
               <Button
                 colorScheme="blue"
                 onClick={() => {
+                  console.log("chainInfo", chainInfo);
                   suggestAndConnect({
                     chainInfo: chainInfo,
                   });
                 }}
               >
                 Connect Keplr
-              </Button>
-            ) : (
-              <Button colorScheme="orange" onClick={() => disconnect()}>
-                Disconnect
               </Button>
             ))}
         </Stack>
@@ -395,6 +399,48 @@ export default function Home() {
           />
         </Stack>
         <Stack>
+          {route && (
+            <>
+              <Heading size="md">Route</Heading>
+              <Stack>
+                {route?.chainIDs.map((chainID, i) => (
+                  <>
+                    {i !== 0 && <StatDownArrow color="gray" />}
+                    <Stack key={i}>
+                      <Text fontWeight="bold">
+                        {getChainInfo({ chainId: chainID })?.chainName}
+                      </Text>
+                      {userAddresses[chainID] ? (
+                        <Code>
+                          <Text>
+                            {route.chainIDs.length - 1 === i
+                              ? destination?.destinationAddress
+                              : userAddresses[chainID]}
+                          </Text>
+                        </Code>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            const chainInfo = getChainInfo({
+                              chainId: chainID,
+                            });
+                            if (chainInfo) {
+                              suggestAndConnect({
+                                chainInfo,
+                              });
+                            }
+                          }}
+                        >
+                          Connect
+                        </Button>
+                      )}
+                    </Stack>
+                  </>
+                ))}
+              </Stack>
+            </>
+          )}
+
           <Code px={4} py={2}>
             skipClient.executeRoute()
           </Code>
